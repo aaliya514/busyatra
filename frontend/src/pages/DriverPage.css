@@ -1,0 +1,40 @@
+.driver-page { min-height: 100vh; background: var(--background, #f8fafc); padding: 80px 16px 32px; }
+.driver-container { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.driver-header { display: flex; align-items: center; gap: 16px; padding: 20px 0 4px; }
+.driver-icon { width: 56px; height: 56px; background: #3B82F6; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; }
+.driver-header h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px; }
+.driver-header p { font-size: 14px; color: #64748b; margin: 0; }
+.driver-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.driver-card h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; color: #1e293b; }
+.driver-select { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 15px; background: #f8fafc; outline: none; cursor: pointer; }
+.driver-select:focus { border-color: #3B82F6; }
+.driver-select:disabled { opacity: 0.6; cursor: not-allowed; }
+.bus-info-strip { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 13px; color: #475569; }
+.bus-route-tag { color: white; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.tracking-status { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; margin-bottom: 14px; }
+.status-icon.idle { color: #94a3b8; }
+.status-icon.live { color: #10b981; }
+.status-icon.error { color: #ef4444; }
+.live-text { color: #10b981; font-weight: 700; }
+.driver-error { background: #fef2f2; color: #dc2626; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
+.btn-start { width: 100%; padding: 14px; background: #10b981; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; }
+.btn-start:hover:not(:disabled) { background: #059669; }
+.btn-start:disabled { background: #94a3b8; cursor: not-allowed; }
+.btn-stop { width: 100%; padding: 14px; background: #ef4444; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.btn-stop:hover { background: #dc2626; }
+.live-card { border: 1.5px solid #10b981; }
+.live-card h2 { color: #059669; display: flex; align-items: center; gap: 6px; }
+.inline-icon { display: inline; }
+.pos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pos-item { background: #f8fafc; border-radius: 10px; padding: 12px; }
+.pos-label { display: block; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.pos-value { font-size: 16px; font-weight: 600; color: #1e293b; }
+.last-sent { font-size: 12px; color: #64748b; margin: 10px 0 0; text-align: center; }
+.demo-card { background: #fffbeb; border: 1.5px solid #fbbf24; }
+.demo-card h2 { color: #92400e; }
+.demo-stops { display: flex; flex-direction: column; gap: 0; }
+.demo-stop { font-size: 13px; font-weight: 500; color: #1e293b; padding: 6px 0; display: flex; align-items: center; gap: 6px; }
+.demo-stop.start { color: #059669; font-weight: 700; }
+.demo-stop.end { color: #dc2626; font-weight: 700; }
+.demo-line { width: 2px; height: 16px; background: #fbbf24; margin-left: 8px; }
+.demo-note { font-size: 12px; color: #78350f; margin: 12px 0 0; background: #fef3c7; padding: 10px; border-radius: 8px; line-height: 1.5; }

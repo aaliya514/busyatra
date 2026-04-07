@@ -1,0 +1,234 @@
+.notifications-page {
+  min-height: calc(100vh - 70px);
+  background: var(--background);
+  padding: var(--space-8) 0;
+}
+
+.notifications-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.notifications-loading {
+  min-height: calc(100vh - 70px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Header */
+.notifications-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+}
+
+.notifications-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-2);
+}
+
+.notifications-header p {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+}
+
+/* Filters */
+.notification-filters {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  background: var(--surface);
+  padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-tab {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.filter-tab:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.filter-tab.active {
+  background: var(--primary);
+  color: white;
+}
+
+.filter-tab .count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Notifications List */
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.notification-item {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  border: 2px solid transparent;
+  transition: all var(--transition-base);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.notification-item:hover {
+  border-color: var(--border-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.notification-item.unread {
+  background: rgba(59, 130, 246, 0.03);
+  border-color: var(--primary);
+}
+
+.notification-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.notification-icon.green {
+  background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+}
+
+.notification-icon.orange {
+  background: linear-gradient(135deg, var(--accent), #D97706);
+}
+
+.notification-icon.blue {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+
+.notification-icon.gray {
+  background: linear-gradient(135deg, var(--text-secondary), var(--text-tertiary));
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-content h3 {
+  font-size: 1rem;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+}
+
+.notification-content p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--space-2);
+}
+
+.notification-time {
+  font-size: 0.813rem;
+  color: var(--text-tertiary);
+}
+
+.notification-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.notification-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+}
+
+.notification-action-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.notification-action-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+/* Empty State */
+.empty-notifications {
+  text-align: center;
+  padding: var(--space-12) 0;
+  color: var(--text-tertiary);
+}
+
+.empty-notifications svg {
+  opacity: 0.3;
+  margin-bottom: var(--space-6);
+}
+
+.empty-notifications h3 {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-3);
+  color: var(--text-primary);
+}
+
+.empty-notifications p {
+  font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .notifications-container {
+    padding: 0 var(--space-4);
+  }
+
+  .notifications-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+
+  .notifications-header h1 {
+    font-size: 2rem;
+  }
+
+  .notification-filters {
+    flex-direction: column;
+  }
+
+  .notification-item {
+    padding: var(--space-4);
+  }
+
+  .notification-icon {
+    width: 40px;
+    height: 40px;
+  }
+}
