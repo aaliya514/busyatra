@@ -80,6 +80,7 @@ async function notifyPassengersOnBus(bus, minutesDelayed, io) {
       }
 
   
+
     }
 
     console.log(`[Delay] Notified ${trips.length} passenger(s) on bus ${bus.busNumber}`);

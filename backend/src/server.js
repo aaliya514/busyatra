@@ -62,7 +62,7 @@ cron.schedule('*/60 * * * * *', () => checkDelays(io));
 
 // ── Start ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚌 BusYatra backend running on http://localhost:${PORT}`);
   console.log('   Simulation: every 3 seconds for non-IoT buses');
   console.log('   Run "npm run seed" first if starting fresh\n');
