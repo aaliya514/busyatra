@@ -1,12 +1,9 @@
-// Delay detection — runs every 60 seconds
-// If a bus has speed=0 for 5+ minutes, it sends SMS alerts to passengers
-// who have an ongoing trip on that bus
 
 const Bus          = require('./models/Bus');
 const Trip         = require('./models/Trip');
 const User         = require('./models/User');
 const Notification = require('./models/Notification');
-const { sendDelayAlert } = require('./smsService');
+
 
 // Track how long each bus has been stationary
 // { busId: { firstStationaryAt: Date, alerted: bool } }
@@ -78,15 +75,11 @@ async function notifyPassengersOnBus(bus, minutesDelayed, io) {
         routeId: bus.route?._id
       });
 
-      // Push via socket.io for instant in-app alert
       if (io) {
         io.emit(`notification_${passenger._id}`, { title, message, type: 'delay' });
       }
 
-      // Send SMS if passenger has a phone number
-      if (passenger.phone) {
-        await sendDelayAlert(passenger.phone, bus.busNumber, routeName, minutesDelayed);
-      }
+  
     }
 
     console.log(`[Delay] Notified ${trips.length} passenger(s) on bus ${bus.busNumber}`);

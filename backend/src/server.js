@@ -22,9 +22,11 @@ app.use(cors());
 app.use(express.json());
 
 // ── MongoDB ───────────────────────────────────────────────────
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI, {
+  serverSelectionTimeoutMS: 15000
+})
   .then(() => console.log('✓ MongoDB connected'))
-  .catch(err => { console.error('MongoDB error:', err); process.exit(1); });
+  .catch(err => console.error('MongoDB connection error:', err.message));
 
 // ── Routes ────────────────────────────────────────────────────
 app.use('/api/auth',          require('./routes/auth'));
