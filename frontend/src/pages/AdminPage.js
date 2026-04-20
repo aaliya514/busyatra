@@ -18,24 +18,32 @@ const AdminPage = ({ onNavigate }) => {
         busAPI.getAllBuses({}),
         routeAPI.getAllRoutes({})
       ]);
-      setBuses(busRes.data.data);
+      const fetchedBuses = busRes.data.data;
+      setBuses(fetchedBuses);
       setRoutes(routeRes.data.data);
       setLastRefresh(new Date());
+
+      // FIX 2: Admin joins every bus room so it receives all GPS updates
+      fetchedBuses.forEach(bus => {
+        socketService.emit('track_bus', bus._id);
+      });
     } catch (e) { console.error(e); }
     setLoading(false);
   }, []);
 
-  // FIXED: useCallback defined BEFORE useEffect — no hoisting issue
+  // FIX 1: Read data.latitude / data.longitude directly (not data.location.latitude)
+  // Server emits: { busId, latitude, longitude, speed, timestamp }
   const handleBusUpdate = useCallback((data) => {
     setBuses(prev => prev.map(b =>
       b._id === data.busId
         ? {
             ...b,
-            location:    { ...b.location, coordinates: [data.location.longitude, data.location.latitude] },
-            speed:       data.speed,
-            currentStop: data.currentStop,
-            nextStop:    data.nextStop,
-            lastUpdated: data.lastUpdated
+            location: {
+              ...b.location,
+              coordinates: [data.longitude, data.latitude]  // [lng, lat] — GeoJSON order
+            },
+            speed:       data.speed ?? b.speed,
+            lastUpdated: data.timestamp || new Date()
           }
         : b
     ));
@@ -44,7 +52,11 @@ const AdminPage = ({ onNavigate }) => {
   useEffect(() => {
     fetchData();
     socketService.on('bus_location_update', handleBusUpdate);
-    return () => socketService.off('bus_location_update', handleBusUpdate);
+    return () => {
+      socketService.off('bus_location_update', handleBusUpdate);
+      // Leave all bus rooms on unmount
+      buses.forEach(bus => socketService.emit('untrack_bus', bus._id));
+    };
   }, [fetchData, handleBusUpdate]);
 
   const activeBuses     = buses.filter(b => b.status === 'active');
