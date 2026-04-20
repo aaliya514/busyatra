@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
-import { Bus, MapPin, Navigation, Search, X, Users, Clock } from 'lucide-react';
+import { Bus, MapPin, Navigation, Search, Users, Clock } from 'lucide-react';
 import L from 'leaflet';
 import Navbar from '../components/Navbar';
 import { busAPI, routeAPI } from '../services/api';
@@ -8,7 +8,6 @@ import socketService from '../services/socket';
 import 'leaflet/dist/leaflet.css';
 import './MapTracking.css';
 
-// Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -16,7 +15,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-// Custom bus icon
 const createBusIcon = (color = '#3B82F6') => {
   return L.divIcon({
     className: 'custom-bus-marker',
@@ -37,93 +35,82 @@ const createBusIcon = (color = '#3B82F6') => {
   });
 };
 
-// Map center controller
 function MapController({ center, zoom }) {
   const map = useMap();
-  
   useEffect(() => {
-    if (center) {
-      map.setView(center, zoom || map.getZoom());
-    }
+    if (center) map.setView(center, zoom || map.getZoom());
   }, [center, zoom, map]);
-  
   return null;
 }
 
 const MapTracking = ({ onNavigate }) => {
-  const [buses, setBuses] = useState([]);
-  const [routes, setRoutes] = useState([]);
-  const [selectedBus, setSelectedBus] = useState(null);
+  const [buses, setBuses]                 = useState([]);
+  const [routes, setRoutes]               = useState([]);
+  const [selectedBus, setSelectedBus]     = useState(null);
   const [selectedRoute, setSelectedRoute] = useState(null);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [mapCenter, setMapCenter] = useState([27.7172, 85.3240]); // Kathmandu
-  const [mapZoom, setMapZoom] = useState(13);
-  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery]     = useState('');
+  const [mapCenter, setMapCenter]         = useState([27.7172, 85.3240]);
+  const [mapZoom, setMapZoom]             = useState(13);
+  const [loading, setLoading]             = useState(true);
 
-  // FIXED: define handleBusUpdate before useEffect so it can be used in fetchMapData too
-  const handleBusUpdate = (updateData) => {
-    setBuses(prevBuses => 
-      prevBuses.map(bus => 
-        bus._id === updateData.busId
-          ? {
-              ...bus,
-              location: {
-                ...bus.location,
-                // FIXED: read flat updateData.longitude / updateData.latitude
-                // Both simulation.js and server.js driver_location now emit flat fields
-                coordinates: [updateData.longitude, updateData.latitude]
-              },
-              speed:       updateData.speed,
-              heading:     updateData.heading,
-              currentStop: updateData.currentStop,
-              nextStop:    updateData.nextStop,
-              lastUpdated: updateData.lastUpdated
-            }
-          : bus
-      )
-    );
-  };
+  // FIXED: defined with useCallback FIRST before fetchMapData
+  // FIXED: reads flat updateData.latitude / updateData.longitude
+  const handleBusUpdate = useCallback((updateData) => {
+    if (!updateData?.busId) return;
+    if (updateData.latitude == null || updateData.longitude == null) return;
 
-  useEffect(() => {
-    fetchMapData();
-    
-    // Listen for bus updates (socket is managed by App.js, just add listeners)
-    socketService.on('bus_location_update', handleBusUpdate);
-    socketService.on('route_bus_update', handleBusUpdate);
-    
-    return () => {
-      // Only remove listeners on unmount, do NOT disconnect the shared socket
-      socketService.off('bus_location_update', handleBusUpdate);
-      socketService.off('route_bus_update', handleBusUpdate);
-    };
+    setBuses(prev => prev.map(bus =>
+      bus._id === updateData.busId
+        ? {
+            ...bus,
+            location: {
+              ...bus.location,
+              coordinates: [updateData.longitude, updateData.latitude]
+            },
+            speed:       updateData.speed       ?? bus.speed,
+            heading:     updateData.heading     ?? bus.heading,
+            currentStop: updateData.currentStop ?? bus.currentStop,
+            nextStop:    updateData.nextStop    ?? bus.nextStop,
+            lastUpdated: updateData.lastUpdated || new Date()
+          }
+        : bus
+    ));
   }, []);
 
-  const fetchMapData = async () => {
+  const fetchMapData = useCallback(async () => {
     try {
       const [busesRes, routesRes] = await Promise.all([
         busAPI.getAllBuses({ status: 'active' }),
         routeAPI.getAllRoutes({ isActive: true })
       ]);
 
-      const busesData = busesRes.data.data;
+      const busesData  = busesRes.data.data;
       const routesData = routesRes.data.data;
 
       setBuses(busesData);
       setRoutes(routesData);
 
-      // FIXED: emit track_bus for every bus so server puts us in the right rooms
-      // Without this, driver GPS updates (which go to bus_${busId} room) are never received
+      // Join every bus room so we receive driver GPS updates
       busesData.forEach(bus => {
         socketService.emit('track_bus', bus._id);
-        socketService.trackBus(bus._id, handleBusUpdate);
       });
+
     } catch (error) {
       console.error('Error fetching map data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMapData();
+    socketService.on('bus_location_update', handleBusUpdate);
+    socketService.on('route_bus_update', handleBusUpdate);
+    return () => {
+      socketService.off('bus_location_update', handleBusUpdate);
+      socketService.off('route_bus_update', handleBusUpdate);
+    };
+  }, [fetchMapData, handleBusUpdate]);
 
   const handleBusClick = (bus) => {
     setSelectedBus(bus);
@@ -135,9 +122,7 @@ const MapTracking = ({ onNavigate }) => {
     try {
       const res = await routeAPI.getRouteLive(route._id);
       setSelectedRoute(res.data.data);
-      
-      // Center map on route
-      if (route.stops && route.stops.length > 0) {
+      if (route.stops?.length > 0) {
         const firstStop = route.stops[0];
         setMapCenter([firstStop.location.coordinates[1], firstStop.location.coordinates[0]]);
         setMapZoom(12);
@@ -156,9 +141,7 @@ const MapTracking = ({ onNavigate }) => {
     return (
       <>
         <Navbar currentPage="map" onNavigate={onNavigate} />
-        <div className="map-loading">
-          <div className="spinner"></div>
-        </div>
+        <div className="map-loading"><div className="spinner"></div></div>
       </>
     );
   }
@@ -167,9 +150,8 @@ const MapTracking = ({ onNavigate }) => {
     <>
       <Navbar currentPage="map" onNavigate={onNavigate} />
       <div className="map-tracking">
-        {/* Sidebar */}
+
         <div className="map-sidebar">
-          {/* Search */}
           <div className="map-search">
             <Search size={20} className="search-icon" />
             <input
@@ -181,7 +163,6 @@ const MapTracking = ({ onNavigate }) => {
             />
           </div>
 
-          {/* Stats */}
           <div className="sidebar-stats">
             <div className="sidebar-stat">
               <Bus size={20} />
@@ -199,7 +180,6 @@ const MapTracking = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Bus List */}
           <div className="sidebar-content">
             <h3 className="sidebar-title">Active Buses</h3>
             <div className="bus-grid">
@@ -215,20 +195,13 @@ const MapTracking = ({ onNavigate }) => {
                   </div>
                   <p className="bus-route">{bus.route?.name || 'Unknown Route'}</p>
                   <div className="bus-card-footer">
-                    <div className="bus-card-info">
-                      <Users size={14} />
-                      <span>{bus.currentPassengers}/{bus.capacity}</span>
-                    </div>
-                    <div className="bus-card-info">
-                      <Clock size={14} />
-                      <span>{bus.speed} km/h</span>
-                    </div>
+                    <div className="bus-card-info"><Users size={14} /><span>{bus.currentPassengers}/{bus.capacity}</span></div>
+                    <div className="bus-card-info"><Clock size={14} /><span>{bus.speed} km/h</span></div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Routes */}
             <h3 className="sidebar-title">Routes</h3>
             <div className="route-grid">
               {routes.map((route) => (
@@ -237,10 +210,7 @@ const MapTracking = ({ onNavigate }) => {
                   className={`sidebar-route-card ${selectedRoute?.route?.id === route._id ? 'selected' : ''}`}
                   onClick={() => handleRouteClick(route)}
                 >
-                  <div 
-                    className="route-badge"
-                    style={{ background: route.color || '#3B82F6' }}
-                  >
+                  <div className="route-badge" style={{ background: route.color || '#3B82F6' }}>
                     {route.routeNumber}
                   </div>
                   <div>
@@ -253,7 +223,6 @@ const MapTracking = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Map */}
         <div className="map-container">
           <MapContainer
             center={mapCenter}
@@ -262,50 +231,43 @@ const MapTracking = ({ onNavigate }) => {
             zoomControl={false}
           >
             <MapController center={mapCenter} zoom={mapZoom} />
-            
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {/* Bus Markers */}
-            {buses.map((bus) => (
-              <Marker
-                key={bus._id}
-                position={[bus.location.coordinates[1], bus.location.coordinates[0]]}
-                icon={createBusIcon(bus.route?.color || '#3B82F6')}
-                eventHandlers={{
-                  click: () => handleBusClick(bus)
-                }}
-              >
-                <Popup>
-                  <div className="map-popup">
-                    <h3>Bus {bus.busNumber}</h3>
-                    <p className="popup-route">{bus.route?.name}</p>
-                    <div className="popup-info">
-                      <div className="popup-row">
-                        <span>Current Stop:</span>
-                        <strong>{bus.currentStop || 'Unknown'}</strong>
-                      </div>
-                      <div className="popup-row">
-                        <span>Next Stop:</span>
-                        <strong>{bus.nextStop || 'Unknown'}</strong>
-                      </div>
-                      <div className="popup-row">
-                        <span>Passengers:</span>
-                        <strong>{bus.currentPassengers}/{bus.capacity}</strong>
-                      </div>
-                      <div className="popup-row">
-                        <span>Speed:</span>
-                        <strong>{bus.speed} km/h</strong>
+            {buses.map((bus) => {
+              // Skip buses with missing/invalid coordinates — this was causing the crash
+              if (
+                !bus.location?.coordinates ||
+                bus.location.coordinates.length < 2 ||
+                bus.location.coordinates[0] == null ||
+                bus.location.coordinates[1] == null
+              ) return null;
+
+              return (
+                <Marker
+                  key={bus._id}
+                  position={[bus.location.coordinates[1], bus.location.coordinates[0]]}
+                  icon={createBusIcon(bus.route?.color || '#3B82F6')}
+                  eventHandlers={{ click: () => handleBusClick(bus) }}
+                >
+                  <Popup>
+                    <div className="map-popup">
+                      <h3>Bus {bus.busNumber}</h3>
+                      <p className="popup-route">{bus.route?.name}</p>
+                      <div className="popup-info">
+                        <div className="popup-row"><span>Current Stop:</span><strong>{bus.currentStop || 'Unknown'}</strong></div>
+                        <div className="popup-row"><span>Next Stop:</span><strong>{bus.nextStop || 'Unknown'}</strong></div>
+                        <div className="popup-row"><span>Passengers:</span><strong>{bus.currentPassengers}/{bus.capacity}</strong></div>
+                        <div className="popup-row"><span>Speed:</span><strong>{bus.speed} km/h</strong></div>
                       </div>
                     </div>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+                  </Popup>
+                </Marker>
+              );
+            })}
 
-            {/* Route Polyline */}
             {selectedRoute && selectedRoute.route.stops && (
               <>
                 <Polyline
@@ -317,8 +279,6 @@ const MapTracking = ({ onNavigate }) => {
                   weight={4}
                   opacity={0.7}
                 />
-                
-                {/* Stop Markers */}
                 {selectedRoute.route.stops.map((stop, index) => (
                   <Marker
                     key={index}
@@ -337,37 +297,24 @@ const MapTracking = ({ onNavigate }) => {
             )}
           </MapContainer>
 
-          {/* Map Controls */}
           <div className="map-controls">
-            <button 
+            <button
               className="map-control-btn"
-              onClick={() => {
-                setMapCenter([27.7172, 85.3240]);
-                setMapZoom(13);
-              }}
+              onClick={() => { setMapCenter([27.7172, 85.3240]); setMapZoom(13); }}
               title="Reset View"
             >
               <Navigation size={20} />
             </button>
           </div>
 
-          {/* Legend */}
           <div className="map-legend">
             <h4>Legend</h4>
-            <div className="legend-item">
-              <div className="legend-icon bus"></div>
-              <span>Active Bus</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-icon stop"></div>
-              <span>Bus Stop</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-line"></div>
-              <span>Route Path</span>
-            </div>
+            <div className="legend-item"><div className="legend-icon bus"></div><span>Active Bus</span></div>
+            <div className="legend-item"><div className="legend-icon stop"></div><span>Bus Stop</span></div>
+            <div className="legend-item"><div className="legend-line"></div><span>Route Path</span></div>
           </div>
         </div>
+
       </div>
     </>
   );
