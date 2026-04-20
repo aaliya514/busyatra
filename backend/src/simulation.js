@@ -78,12 +78,16 @@ async function tickSimulation(io) {
       });
 
       if (io) {
+        // FIXED: emit flat latitude/longitude (not nested location object)
+        // This matches what server.js driver_location handler also emits
+        // so MapTracking.js and AdminPage.js both get the same shape
         io.emit('bus_location_update', {
           busId:       bus._id,
           busNumber:   bus.busNumber,
-          location:    { latitude: pos.lat, longitude: pos.lng },
+          latitude:    pos.lat,
+          longitude:   pos.lng,
           speed,
-          heading: head,
+          heading:     head,
           currentStop: fromStop.name,
           nextStop:    toStop.name,
           lastUpdated: new Date(),

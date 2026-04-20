@@ -3,6 +3,7 @@ import { MapPin, Navigation, Wifi, WifiOff, Bus, CheckCircle, AlertCircle } from
 import Navbar from '../components/Navbar';
 import { busAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import socketService from '../services/socket'; // FIXED: import socketService directly
 import './DriverPage.css';
 
 const DriverPage = ({ onNavigate }) => {
@@ -48,16 +49,14 @@ const DriverPage = ({ onNavigate }) => {
         body: JSON.stringify({ latitude: lat, longitude: lng, speed, heading })
       });
 
-      // ADD THIS — emit to socket so passenger map updates live
-      const socket = window._busyatraSocket;
-      if (socket) {
-        socket.emit('driver_location', {
-          busId: selectedBusId,
-          latitude: lat,
-          longitude: lng,
-          speed: speed || 0
-        });
-      }
+      // FIXED: use socketService.emit directly instead of window._busyatraSocket
+      // window._busyatraSocket can be undefined if App.js hasn't set it yet
+      socketService.emit('driver_location', {
+        busId:     selectedBusId,
+        latitude:  lat,
+        longitude: lng,
+        speed:     speed || 0
+      });
 
       setLastSent(new Date());
       setSendCount(c => c + 1);

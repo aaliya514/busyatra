@@ -61,6 +61,30 @@ const MapTracking = ({ onNavigate }) => {
   const [mapZoom, setMapZoom] = useState(13);
   const [loading, setLoading] = useState(true);
 
+  // FIXED: define handleBusUpdate before useEffect so it can be used in fetchMapData too
+  const handleBusUpdate = (updateData) => {
+    setBuses(prevBuses => 
+      prevBuses.map(bus => 
+        bus._id === updateData.busId
+          ? {
+              ...bus,
+              location: {
+                ...bus.location,
+                // FIXED: read flat updateData.longitude / updateData.latitude
+                // Both simulation.js and server.js driver_location now emit flat fields
+                coordinates: [updateData.longitude, updateData.latitude]
+              },
+              speed:       updateData.speed,
+              heading:     updateData.heading,
+              currentStop: updateData.currentStop,
+              nextStop:    updateData.nextStop,
+              lastUpdated: updateData.lastUpdated
+            }
+          : bus
+      )
+    );
+  };
+
   useEffect(() => {
     fetchMapData();
     
@@ -88,8 +112,10 @@ const MapTracking = ({ onNavigate }) => {
       setBuses(busesData);
       setRoutes(routesData);
 
-      // Track all buses for real-time updates
+      // FIXED: emit track_bus for every bus so server puts us in the right rooms
+      // Without this, driver GPS updates (which go to bus_${busId} room) are never received
       busesData.forEach(bus => {
+        socketService.emit('track_bus', bus._id);
         socketService.trackBus(bus._id, handleBusUpdate);
       });
     } catch (error) {
@@ -97,27 +123,6 @@ const MapTracking = ({ onNavigate }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleBusUpdate = (updateData) => {
-    setBuses(prevBuses => 
-      prevBuses.map(bus => 
-        bus._id === updateData.busId
-          ? {
-              ...bus,
-              location: {
-                ...bus.location,
-                coordinates: [updateData.location.longitude, updateData.location.latitude]
-              },
-              speed: updateData.speed,
-              heading: updateData.heading,
-              currentStop: updateData.currentStop,
-              nextStop: updateData.nextStop,
-              lastUpdated: updateData.lastUpdated
-            }
-          : bus
-      )
-    );
   };
 
   const handleBusClick = (bus) => {
