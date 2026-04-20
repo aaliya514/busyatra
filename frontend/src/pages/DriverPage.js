@@ -39,7 +39,7 @@ const DriverPage = ({ onNavigate }) => {
     if (!selectedBusId) return;
     try {
       const token = localStorage.getItem('busyatra_token');
-      await fetch(`/api/buses/${selectedBusId}/location`, {
+      await fetch(`${process.env.REACT_APP_API_URL}/buses/${selectedBusId}/location`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -47,6 +47,18 @@ const DriverPage = ({ onNavigate }) => {
         },
         body: JSON.stringify({ latitude: lat, longitude: lng, speed, heading })
       });
+
+      // ADD THIS — emit to socket so passenger map updates live
+      const socket = window._busyatraSocket;
+      if (socket) {
+        socket.emit('driver_location', {
+          busId: selectedBusId,
+          latitude: lat,
+          longitude: lng,
+          speed: speed || 0
+        });
+      }
+
       setLastSent(new Date());
       setSendCount(c => c + 1);
       setErrorMsg('');

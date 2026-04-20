@@ -51,6 +51,17 @@ io.on('connection', (socket) => {
   socket.on('track_route',   (routeId) => socket.join(`route_${routeId}`));
   socket.on('untrack_route', (routeId) => socket.leave(`route_${routeId}`));
 
+  socket.on('driver_location', (data) => {
+    console.log('Driver GPS received:', data);
+    io.to(`bus_${data.busId}`).emit('bus_location_update', {
+      busId: data.busId,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      speed: data.speed || 0,
+      timestamp: new Date()
+    });
+  });
+
   socket.on('disconnect', () => console.log('Socket disconnected:', socket.id));
 });
 
